@@ -123,12 +123,6 @@ pub fn SIN_DATASET_EXAMPLE() -> Result<()> {
     let pred_outs = trained_model.forward(&sorted_test_data)?;
     let true_outs = sorted_test_data.sin()?;
     draw_plot(&sorted_test_data, &pred_outs, &true_outs);
-        //m: Dataset, 
-                    //model: T,
-                    //mut optimizer: impl Optimizer, 
-                    //loss : impl Loss + Clone,
-                    //epochs : usize, 
-                    //dev: &Device
     Ok(())
 }
 
