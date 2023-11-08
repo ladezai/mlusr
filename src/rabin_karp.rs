@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+
 
 ///
 /// Given a long string and some fragments, returns the 
@@ -10,32 +10,41 @@ use std::collections::HashMap;
 /// b : base, i.e. number of symbols used in the text. 
 /// q : prime for the hash base
 pub fn rabin_karp(long_text : &str, 
-        segments : &[&str], b : usize, q: usize) -> Vec<Vec<usize>> {
+                  segments : &[&str], 
+                  b : usize, 
+                  q : usize) -> Vec<Vec<usize>> {
     // general infos
-    let TEXT_LENGTH    : usize  = long_text.len();
-    let N_SEGMENTS     : usize  = segments.len();
-    let SEGMENT_LEN    : usize  = segments[0].len();
+    let text_length     : usize  = long_text.len();
+    let num_segments    : usize  = segments.len();
+    let segment_length  : usize  = segments[0].len();
+
     // compute b ^ (segment_len - 1) mod q
-    let b_star : usize = (1.. SEGMENT_LEN).fold(b, |acc, x| acc * b % q) % q;
-    // Computes the hashes of the known segmets
-    let segment_hashes : Vec<usize> = segments.into_iter()
+    let b_star : usize = (1.. segment_length).fold(b, |acc, _x| acc * b % q);
+
+    // Computes the hashes of the known segments
+    let segment_hashes : Vec<usize> = segments.iter()
                                            .map(|v| rolling_hash(v, b, q))
                                            .collect();
 
-    let mut positions : Vec<Vec<usize>> = vec![Vec::new(); N_SEGMENTS]; 
-    let mut hash_cur_pattern : usize = rolling_hash(&long_text[..SEGMENT_LEN], b, q);
-    let mut cur_string : String = String::from(&long_text[..SEGMENT_LEN]);
+    // mut variables of the code.
+    let mut positions : Vec<Vec<usize>> = vec![Vec::new(); num_segments]; 
+    let mut hash_cur_pattern : usize = rolling_hash(&long_text[..segment_length], b, q);
+    let mut cur_string : String = String::from(&long_text[..segment_length]);
+
     for (i, char) in long_text.char_indices()
-                              .skip(SEGMENT_LEN)
-                              .take(TEXT_LENGTH - SEGMENT_LEN) {
-        for j in 0.. N_SEGMENTS {
+                              .skip(segment_length)
+                              .take(text_length - segment_length) {
+
+        // Search for pattern by hashing.
+        for j in 0.. num_segments {
             // here short circuits prevents from wasting a double-if
             // append the position only if the hash and equality are satisfied.
            if hash_cur_pattern == segment_hashes[j] &&  
                 cur_string.as_str() == segments[j] {
-                positions[j].push(i-SEGMENT_LEN);
+                positions[j].push(i-segment_length);
             }
         }
+
         // updates the current string to check
         let s = cur_string.remove(0);
         cur_string.push(char);
@@ -47,28 +56,26 @@ pub fn rabin_karp(long_text : &str,
         hash_cur_pattern  = (hash_cur_pattern + q - (si * b_star % q)) % q;
    }
 
-    return positions
+    positions
 }
 
 /// Compute hash using a weighted module sum.
-/// P : string to hash
+/// string_to_hash : string to hash
 /// b : base of the hashing
 /// q : modulo of the hash (so the total size of the hashed space).
-pub fn rolling_hash(P : &str, b : usize, q : usize) -> usize
+pub fn rolling_hash(string_to_hash : &str, b : usize, q : usize) -> usize
 {
-    P.chars()
-     .fold(0_usize, |acc, x| acc * b + (x as usize)) % q 
+    string_to_hash.chars()
+                  .fold(0_usize, |acc, x| (acc * b + (x as usize)) % q) 
 }
 
 
 #[cfg(test)]
 mod tests {
     use crate::rabin_karp::{rabin_karp, rolling_hash};
-    //use sequential_layers::{Sequential, LinearSkipConnection};
-
 
     #[test]
-    fn rolling_hash_test() -> () {
+    fn rolling_hash_test() {
         let a_val = "A".chars().next().unwrap() as usize;
         let b_val = "B".chars().next().unwrap() as usize;
         let c_val = "C".chars().next().unwrap() as usize;
@@ -78,14 +85,13 @@ mod tests {
         println!("B = {:?}", b_val);
         println!("C = {:?}", c_val);
         println!("HASH of ABC = {:?}", val);
-        assert_eq!(val, (65 * 3 * 3 + 66 * 3 + 67 * 1 ) % 7);
+        assert_eq!(val, (65 * 3 * 3 + 66 * 3 + 67 ) % 7);
     }
 
     #[test]
-    fn rabin_karp_test() -> () {
+    fn rabin_karp_test() {
         let seg1 = String::from("ACG"); 
         let segments = [seg1.as_str()];
-        //let seg2 = String::from("
         let positions = rabin_karp("ACACACGACGATG", &segments, 4_usize, 127_usize);
         println!("{:?}", positions);
 
